@@ -1,0 +1,9 @@
+name: RpgAspects
+version: '${project.version}'
+main: com.example.rpgaspects.RpgAspects
+api-version: '1.21'
+commands:
+  aspekt:
+    description: Zarzadzanie aspektami RPG gracza.
+    permission: rpgaspects.use
+    usage: /aspekt [wybierz] [nazwa]
