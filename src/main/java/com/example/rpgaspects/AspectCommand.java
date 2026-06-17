@@ -1,11 +1,9 @@
 package com.example.rpgaspects;
 
-import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 public class AspectCommand implements CommandExecutor {
@@ -23,7 +21,7 @@ public class AspectCommand implements CommandExecutor {
             return true;
         }
 
-        // Bezpieczne otwieranie GUI przy uzyciu istniejacego listenera
+        // Bezpieczne i czyste wywolanie otwarcia GUI bez zbednych importow
         AspectListener aspectListener = new AspectListener(plugin);
         aspectListener.openAspectGUI(player);
         
