@@ -1,5 +1,7 @@
 package com.example.rpgaspects;
 
+import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
@@ -8,19 +10,99 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class AspectListener implements Listener {
 
     private final RpgAspects plugin;
     private final Random random = new Random();
+    private final String guiTitle = "§6§lWybierz swój Aspekt";
 
     public AspectListener(RpgAspects plugin) {
         this.plugin = plugin;
     }
 
+    // Otwieranie UI automatycznie po wejściu na serwer
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        // Opóźnienie o 5 ticków (1/4 sekundy), aby GUI otworzyło się stabilnie po załadowaniu gracza
+        Bukkit.getScheduler().runTaskLater(plugin, () -> openAspectGUI(player), 5L);
+    }
+
+    // Metoda tworząca i otwierająca graficzne menu wyboru klas
+    public void openAspectGUI(Player player) {
+        Inventory gui = Bukkit.createInventory(null, 9, Component.text(guiTitle));
+
+        gui.setItem(1, createGuiItem(Material.NETHERITE_AXE, "§c§lBERSERKER", "§7Pasywka: Wieksze obrazenia przy niskim HP.", "§cBlokada: Nie mozesz uzywac tarczy."));
+        gui.setItem(2, createGuiItem(Material.PHANTOM_MEMBRANE, "§8§lCIEŃ", "§7Pasywka: Szansa na unik w nocy.", "§7+30% obrazen z ukrycia (skradanie)."));
+        gui.setItem(3, createGuiItem(Material.NETHERITE_CHESTPLATE, "§e§lPALADYN", "§7Pasywka: Otrzymujesz 15% mniej obrazen.", "§cKara: Poruszasz sie o 10% wolniej."));
+        gui.setItem(4, createGuiItem(Material.BOW, "§2§lŁOWCA", "§7Pasywka: Strzaly nakladaja spowolnienie.", "§cKara: Zadajesz 20% mniej obrazen wrecz."));
+        gui.setItem(5, createGuiItem(Material.BREWING_STAND, "§d§lALCHEMIK", "§7Pasywka: Mikstury trwaja 50% dluzej.", "§7Negatywne efekty znikaja 2x szybciej."));
+        gui.setItem(6, createGuiItem(Material.REDSTONE, "§4§lWAMPIR", "§7Pasywka: Leczysz sie o 15% zadanych obrazen.", "§cSlabosc: Ogien zadaje podwojne obrazenia."));
+
+        player.openInventory(gui);
+    }
+
+    private ItemStack createGuiItem(Material material, String name, String lore1, String lore2) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text(name));
+            List<Component> lore = new ArrayList<>();
+            lore.add(Component.text(lore1));
+            lore.add(Component.text(lore2));
+            meta.lore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    // Obsługa kliknięć wewnątrz GUI klas oraz blokada wyciągania przedmiotów
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (event.getView().title().equals(Component.text(guiTitle))) {
+            event.setCancelled(true); // Blokuje wyciąganie przedmiotów z menu
+
+            if (!(event.getWhoClicked() instanceof Player player)) return;
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
+
+            PlayerData data = plugin.getPlayerData(player);
+            Material type = clickedItem.getType();
+
+            if (type == Material.NETHERITE_AXE) data.setCurrentAspect(PlayerData.AspectType.BERSERKER);
+            else if (type == Material.PHANTOM_MEMBRANE) data.setCurrentAspect(PlayerData.AspectType.CIEŃ);
+            else if (type == Material.NETHERITE_CHESTPLATE) data.setCurrentAspect(PlayerData.AspectType.PALADYN);
+            else if (type == Material.BOW) data.setCurrentAspect(PlayerData.AspectType.ŁOWCA);
+            else if (type == Material.BREWING_STAND) data.setCurrentAspect(PlayerData.AspectType.ALCHEMIK);
+            else if (type == Material.REDSTONE) data.setCurrentAspect(PlayerData.AspectType.WAMPIR);
+
+            player.sendMessage("§aWybrano aspekt: §2§l" + data.getCurrentAspect().getName());
+            player.closeInventory();
+        }
+
+        // --- SŁABOŚĆ BERSERKERA: Blokada tarcz w ekwipunku ---
+        if (event.getWhoClicked() instanceof Player player) {
+            PlayerData data = plugin.getPlayerData(player);
+            if (data.getCurrentAspect() == PlayerData.AspectType.BERSERKER) {
+                if (event.getCurrentItem() != null && event.getCurrentItem().getType() == Material.SHIELD) {
+                    event.setCancelled(true);
+                    player.sendMessage("§cAspekt Berserkera uniemozliwia korzystanie z tarcz!");
+                }
+            }
+        }
+    }
+
+    // --- LOGIKA WALKI I PASYWEK (BEZ ZMIAN) ---
     @EventHandler
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof Player attacker) {
@@ -29,9 +111,7 @@ public class AspectListener implements Listener {
             switch (attackerData.getCurrentAspect()) {
                 case BERSERKER -> {
                     double hpPercentage = attacker.getHealth() / attacker.getMaxHealth();
-                    if (hpPercentage < 0.5) {
-                        event.setDamage(event.getDamage() * 1.25);
-                    }
+                    if (hpPercentage < 0.5) event.setDamage(event.getDamage() * 1.25);
                 }
                 case CIEŃ -> {
                     if (attacker.isSneaking()) {
@@ -65,9 +145,7 @@ public class AspectListener implements Listener {
             PlayerData victimData = plugin.getPlayerData(victim);
 
             switch (victimData.getCurrentAspect()) {
-                case PALADYN -> {
-                    event.setDamage(event.getDamage() * 0.85);
-                }
+                case PALADYN -> event.setDamage(event.getDamage() * 0.85);
                 case CIEŃ -> {
                     long time = victim.getWorld().getTime();
                     boolean isNight = time >= 13000 && time <= 23000;
@@ -85,25 +163,11 @@ public class AspectListener implements Listener {
     public void onEnvironmentalDamage(EntityDamageEvent event) {
         if (event.getEntity() instanceof Player player) {
             PlayerData data = plugin.getPlayerData(player);
-
             if (data.getCurrentAspect() == PlayerData.AspectType.WAMPIR) {
                 if (event.getCause() == EntityDamageEvent.DamageCause.FIRE || 
                     event.getCause() == EntityDamageEvent.DamageCause.FIRE_TICK || 
                     event.getCause() == EntityDamageEvent.DamageCause.LAVA) {
                     event.setDamage(event.getDamage() * 2.0);
-                }
-            }
-        }
-    }
-
-    @EventHandler
-    public void onShieldBlock(InventoryClickEvent event) {
-        if (event.getWhoClicked() instanceof Player player) {
-            PlayerData data = plugin.getPlayerData(player);
-            if (data.getCurrentAspect() == PlayerData.AspectType.BERSERKER) {
-                if (event.getCurrentItem() != null && event.getCurrentItem().getType() == Material.SHIELD) {
-                    event.setCancelled(true);
-                    player.sendMessage("§cAspekt Berserkera uniemozliwia korzystanie z tarcz!");
                 }
             }
         }
