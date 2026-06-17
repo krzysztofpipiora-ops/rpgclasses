@@ -5,12 +5,12 @@ public class PlayerData {
 
     public enum AspectType {
         NONE("Brak", "Zwykly smiertelnik bez zadnych modyfikatorow."),
-        BERSERKER("Berserker", "Wieksze obrazenia im mniej masz zdrowia. Brak tarczy."),
-        CIEŃ("Cien", "15% szansy na unik w nocy. Pierwszy cios ze skradania zadaje +30% obrazen."),
+        BERSERKER("Berserker", "+20% obrazen, ale otrzymujesz 10% wiecej obrazen i brak tarczy."),
+        CIEŃ("Cien", "15% szansy na unik w nocy i +25% ze skradania, ale staly pancerz mniejszy o 15%."),
         PALADYN("Paladyn", "Otrzymujesz 15% mniej obrazen, ale poruszasz sie o 10% wolniej."),
-        ŁOWCA("Lowca", "Strzaly z luku/kuszy nakladaja spowolnienie. -20% obrazen w zwarciu."),
-        ALCHEMIK("Alchemik", "Wypijane mikstury trwaja dluzej. Negatywne efekty trwaja krocej."),
-        WAMPIR("Wampir", "Leczysz sie o 15% zadanych obrazen. Ogien zadaje podwojne obrazenia.");
+        ŁOWCA("Lowca", "Strzaly nakladaja spowolnienie. Zadajesz 20% mniej obrazen mieczem/toporem."),
+        ALCHEMIK("Alchemik", "Mikstury trwaja 50% dluzej. Slabosc: Perly Endu zadaja podwojne obrażenia."),
+        WAMPIR("Wampir", "Leczysz sie o 12% zadanych obrazen, ale leczenie z jedzenia jest o 50% slabsze.");
 
         private final String name;
         private final String description;
