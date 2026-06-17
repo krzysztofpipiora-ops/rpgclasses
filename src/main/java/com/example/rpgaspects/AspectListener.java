@@ -30,15 +30,12 @@ public class AspectListener implements Listener {
         this.plugin = plugin;
     }
 
-    // Otwieranie UI automatycznie po wejściu na serwer
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        // Opóźnienie o 5 ticków (1/4 sekundy), aby GUI otworzyło się stabilnie po załadowaniu gracza
         Bukkit.getScheduler().runTaskLater(plugin, () -> openAspectGUI(player), 5L);
     }
 
-    // Metoda tworząca i otwierająca graficzne menu wyboru klas
     public void openAspectGUI(Player player) {
         Inventory gui = Bukkit.createInventory(null, 9, Component.text(guiTitle));
 
@@ -66,11 +63,10 @@ public class AspectListener implements Listener {
         return item;
     }
 
-    // Obsługa kliknięć wewnątrz GUI klas oraz blokada wyciągania przedmiotów
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getView().title().equals(Component.text(guiTitle))) {
-            event.setCancelled(true); // Blokuje wyciąganie przedmiotów z menu
+            event.setCancelled(true);
 
             if (!(event.getWhoClicked() instanceof Player player)) return;
             ItemStack clickedItem = event.getCurrentItem();
@@ -88,9 +84,9 @@ public class AspectListener implements Listener {
 
             player.sendMessage("§aWybrano aspekt: §2§l" + data.getCurrentAspect().getName());
             player.closeInventory();
+            return;
         }
 
-        // --- SŁABOŚĆ BERSERKERA: Blokada tarcz w ekwipunku ---
         if (event.getWhoClicked() instanceof Player player) {
             PlayerData data = plugin.getPlayerData(player);
             if (data.getCurrentAspect() == PlayerData.AspectType.BERSERKER) {
@@ -102,7 +98,6 @@ public class AspectListener implements Listener {
         }
     }
 
-    // --- LOGIKA WALKI I PASYWEK (BEZ ZMIAN) ---
     @EventHandler
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof Player attacker) {
