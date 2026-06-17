@@ -21,7 +21,6 @@ public class AspectCommand implements CommandExecutor {
             return true;
         }
 
-        // Bezpieczne i czyste wywolanie otwarcia GUI bez zbednych importow
         AspectListener aspectListener = new AspectListener(plugin);
         aspectListener.openAspectGUI(player);
         
