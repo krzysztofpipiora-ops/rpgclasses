@@ -109,7 +109,6 @@ public class AspectListener implements Listener {
         }
     }
 
-    // APLIKOWANIE STATYSTYK SILNIKA (PRĘDKOŚĆ, PANCERZ) DLA ZBALANSOWANIA KLAS
     private void applyAttributeModifiers(Player player, PlayerData.AspectType aspect) {
         AttributeInstance speedAttr = player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED);
         AttributeInstance armorAttr = player.getAttribute(Attribute.GENERIC_ARMOR);
@@ -117,67 +116,60 @@ public class AspectListener implements Listener {
         if (speedAttr != null) {
             speedAttr.removeModifier(speedKey);
             if (aspect == PlayerData.AspectType.PALADYN) {
-                speedAttr.addModifier(new AttributeModifier(speedKey, -0.10, AttributeModifier.Operation.ADD_SCALAR)); // -10% prędkości
+                speedAttr.addModifier(new AttributeModifier(speedKey, -0.10, AttributeModifier.Operation.ADD_SCALAR));
             }
         }
 
         if (armorAttr != null) {
             armorAttr.removeModifier(armorKey);
             if (aspect == PlayerData.AspectType.CIEŃ) {
-                armorAttr.addModifier(new AttributeModifier(armorKey, -0.15, AttributeModifier.Operation.ADD_SCALAR)); // -15% pancerza
+                armorAttr.addModifier(new AttributeModifier(armorKey, -0.15, AttributeModifier.Operation.ADD_SCALAR));
             }
         }
     }
 
     @EventHandler
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
-        // --- OFENSYWA (ATAK) ---
         if (event.getDamager() instanceof Player attacker) {
             PlayerData attackerData = plugin.getPlayerData(attacker);
             
             switch (attackerData.getCurrentAspect()) {
-                case BERSERKER -> {
-                    event.setDamage(event.getDamage() * 1.20); // Zbalansowane do +20% obrażeń stale
-                }
+                case BERSERKER -> event.setDamage(event.getDamage() * 1.20);
                 case CIEŃ -> {
                     if (attacker.isSneaking()) {
-                        event.setDamage(event.getDamage() * 1.25); // +25% obrażeń z zaskoczenia
+                        event.setDamage(event.getDamage() * 1.25);
                         attacker.sendMessage("§8[Cien] Atak z ukrycia!");
                     }
                 }
                 case ŁOWCA -> {
                     if (event.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
-                        event.setDamage(event.getDamage() * 0.80); // -20% obrażeń wręcz (miecz, siekiera)
+                        event.setDamage(event.getDamage() * 0.80);
                     }
                 }
                 case WAMPIR -> {
-                    double healAmount = event.getFinalDamage() * 0.12; // Zbalansowany wampiryzm do 12%
-                    double newHealth = Math.min(attacker.getHealth() + healAmount, attacker.getMaxHealth());
+                    double healAmount = event.getFinalDamage() * 0.12;
+                    AttributeInstance maxHpAttr = attacker.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+                    double maxHp = (maxHpAttr != null) ? maxHpAttr.getValue() : 20.0;
+                    double newHealth = Math.min(attacker.getHealth() + healAmount, maxHp);
                     attacker.setHealth(newHealth);
                 }
                 default -> {}
             }
         }
 
-        // --- STRZAŁY ŁOWCY ---
         if (event.getDamager() instanceof Arrow arrow && arrow.getShooter() instanceof Player shooter) {
             PlayerData shooterData = plugin.getPlayerData(shooter);
             if (shooterData.getCurrentAspect() == PlayerData.AspectType.ŁOWCA && event.getEntity() instanceof Player victim) {
-                victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 0)); // Spowolnienie I na 2s
+                victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 0));
             }
         }
 
-        // --- DEFENSYWA (OBRONA) ---
         if (event.getEntity() instanceof Player victim) {
             PlayerData victimData = plugin.getPlayerData(victim);
 
             switch (victimData.getCurrentAspect()) {
-                case PALADYN -> {
-                    event.setDamage(event.getDamage() * 0.85); // -15% otrzymywanych ran
-                }
-                case BERSERKER -> {
-                    event.setDamage(event.getDamage() * 1.10); // Słabość Berserkera: otrzymuje +10% więcej obrażeń
-                }
+                case PALADYN -> event.setDamage(event.getDamage() * 0.85);
+                case BERSERKER -> event.setDamage(event.getDamage() * 1.10);
                 case CIEŃ -> {
                     long time = victim.getWorld().getTime();
                     boolean isNight = time >= 13000 && time <= 23000;
@@ -195,8 +187,6 @@ public class AspectListener implements Listener {
     public void onEnvironmentalDamage(EntityDamageEvent event) {
         if (event.getEntity() instanceof Player player) {
             PlayerData data = plugin.getPlayerData(player);
-            
-            // Słabość Alchemika: Perły endu są dla niego niestabilne i ranią 2x mocniej przy teleportacji
             if (data.getCurrentAspect() == PlayerData.AspectType.ALCHEMIK && event.getCause() == EntityDamageEvent.DamageCause.ENDER_PEARL) {
                 event.setDamage(event.getDamage() * 2.0);
             }
@@ -207,10 +197,8 @@ public class AspectListener implements Listener {
     public void onPlayerRegen(EntityRegenEvent event) {
         if (event.getEntity() instanceof Player player) {
             PlayerData data = plugin.getPlayerData(player);
-            
-            // Słabość Wampira: Wolniejsza naturalna regeneracja z najedzenia (Satiated)
             if (data.getCurrentAspect() == PlayerData.AspectType.WAMPIR && event.getRegenReason() == EntityRegenEvent.RegenReason.SATIATED) {
-                if (random.nextBoolean()) { // 50% szans na zablokowanie pojedynczego ticku leczenia
+                if (random.nextBoolean()) {
                     event.setCancelled(true);
                 }
             }
