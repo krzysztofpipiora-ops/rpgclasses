@@ -21,8 +21,8 @@ public class AspectCommand implements CommandExecutor {
             return true;
         }
 
-        AspectListener aspectListener = new AspectListener(plugin);
-        aspectListener.openAspectGUI(player);
+        AspectListener listener = new AspectListener(plugin);
+        listener.openAspectGUI(player);
         
         return true;
     }
