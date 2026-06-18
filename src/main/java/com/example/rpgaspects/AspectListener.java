@@ -3,9 +3,6 @@ package com.example.rpgaspects;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
-import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -18,7 +15,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.NamespacedKey;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import java.util.ArrayList;
@@ -30,14 +26,9 @@ public class AspectListener implements Listener {
     private final RpgAspects plugin;
     private final Random random = new Random();
     private final String guiTitle = "§6§lWybierz swój Aspekt";
-    
-    private final NamespacedKey speedKey;
-    private final NamespacedKey armorKey;
 
     public AspectListener(RpgAspects plugin) {
         this.plugin = plugin;
-        this.speedKey = new NamespacedKey(plugin, "rpg_speed");
-        this.armorKey = new NamespacedKey(plugin, "rpg_armor");
     }
 
     @EventHandler
@@ -50,8 +41,8 @@ public class AspectListener implements Listener {
         Inventory gui = Bukkit.createInventory(null, 9, Component.text(guiTitle));
 
         gui.setItem(1, createGuiItem(Material.NETHERITE_AXE, "§c§lBERSERKER", "§7+20% obrazen. Otrzymujesz 10% wiecej ran.", "§cBlokada: Brak tarczy."));
-        gui.setItem(2, createGuiItem(Material.PHANTOM_MEMBRANE, "§8§lCIEŃ", "§715% na unik w nocy. +25% obrazen ze skradania.", "§cKara: -15% bazowego pancerza."));
-        gui.setItem(3, createGuiItem(Material.NETHERITE_CHESTPLATE, "§e§lPALADYN", "§7Otrzymujesz 15% mniej obrazen od wszystkiego.", "§cKara: Poruszasz sie o 10% wolniej."));
+        gui.setItem(2, createGuiItem(Material.PHANTOM_MEMBRANE, "§8§lCIEŃ", "§715% na unik w nocy. +25% obrazen ze skradania.", "§cKara: Otrzymujesz 15% wiecej ran za dnia."));
+        gui.setItem(3, createGuiItem(Material.NETHERITE_CHESTPLATE, "§e§lPALADYN", "§7Otrzymujesz 15% mniej obrazen od wszystkiego.", "§cKara: Posiadasz staly efekt Spowolnienia I."));
         gui.setItem(4, createGuiItem(Material.BOW, "§2§lŁOWCA", "§7Strzaly nakladaja spowolnienie na 2s.", "§cKara: Zadajesz 20% mniej obrazen wrecz."));
         gui.setItem(5, createGuiItem(Material.BREWING_STAND, "§d§lALCHEMIK", "§7Mikstury trwaja 50% dluzej.", "§cSlabosc: Perly endu zadaja 2x wiecej ran."));
         gui.setItem(6, createGuiItem(Material.REDSTONE, "§4§lWAMPIR", "§7Leczysz sie o 12% zadanych obrazen.", "§cKara: Regeneracja z jedzenia slabsza o 50%."));
@@ -85,14 +76,20 @@ public class AspectListener implements Listener {
             PlayerData data = plugin.getPlayerData(player);
             Material type = clickedItem.getType();
 
+            // Usuniecie efektu spowolnienia przed nadaniem nowego aspektu
+            player.removePotionEffect(PotionEffectType.SLOWNESS);
+
             if (type == Material.NETHERITE_AXE) data.setCurrentAspect(PlayerData.AspectType.BERSERKER);
             else if (type == Material.PHANTOM_MEMBRANE) data.setCurrentAspect(PlayerData.AspectType.CIEŃ);
-            else if (type == Material.NETHERITE_CHESTPLATE) data.setCurrentAspect(PlayerData.AspectType.PALADYN);
+            else if (type == Material.NETHERITE_CHESTPLATE) {
+                data.setCurrentAspect(PlayerData.AspectType.PALADYN);
+                // Paladyn otrzymuje spowolnienie przez efekt (zamiast zabugowanego atrybutu)
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, PotionEffect.INFINITE_DURATION, 0, false, false, true));
+            }
             else if (type == Material.BOW) data.setCurrentAspect(PlayerData.AspectType.ŁOWCA);
             else if (type == Material.BREWING_STAND) data.setCurrentAspect(PlayerData.AspectType.ALCHEMIK);
             else if (type == Material.REDSTONE) data.setCurrentAspect(PlayerData.AspectType.WAMPIR);
 
-            applyAttributeModifiers(player, data.getCurrentAspect());
             player.sendMessage("§aWybrano aspekt: §2§l" + data.getCurrentAspect().getName());
             player.closeInventory();
             return;
@@ -109,27 +106,9 @@ public class AspectListener implements Listener {
         }
     }
 
-    private void applyAttributeModifiers(Player player, PlayerData.AspectType aspect) {
-        AttributeInstance speedAttr = player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED);
-        AttributeInstance armorAttr = player.getAttribute(Attribute.GENERIC_ARMOR);
-
-        if (speedAttr != null) {
-            speedAttr.removeModifier(speedKey);
-            if (aspect == PlayerData.AspectType.PALADYN) {
-                speedAttr.addModifier(new AttributeModifier(speedKey, -0.10, AttributeModifier.Operation.ADD_SCALAR));
-            }
-        }
-
-        if (armorAttr != null) {
-            armorAttr.removeModifier(armorKey);
-            if (aspect == PlayerData.AspectType.CIEŃ) {
-                armorAttr.addModifier(new AttributeModifier(armorKey, -0.15, AttributeModifier.Operation.ADD_SCALAR));
-            }
-        }
-    }
-
     @EventHandler
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
+        // --- OFENSYWA ---
         if (event.getDamager() instanceof Player attacker) {
             PlayerData attackerData = plugin.getPlayerData(attacker);
             
@@ -148,15 +127,14 @@ public class AspectListener implements Listener {
                 }
                 case WAMPIR -> {
                     double healAmount = event.getFinalDamage() * 0.12;
-                    AttributeInstance maxHpAttr = attacker.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-                    double maxHp = (maxHpAttr != null) ? maxHpAttr.getValue() : 20.0;
-                    double newHealth = Math.min(attacker.getHealth() + healAmount, maxHp);
+                    double newHealth = Math.min(attacker.getHealth() + healAmount, 20.0);
                     attacker.setHealth(newHealth);
                 }
                 default -> {}
             }
         }
 
+        // --- STRZAŁY ŁOWCY ---
         if (event.getDamager() instanceof Arrow arrow && arrow.getShooter() instanceof Player shooter) {
             PlayerData shooterData = plugin.getPlayerData(shooter);
             if (shooterData.getCurrentAspect() == PlayerData.AspectType.ŁOWCA && event.getEntity() instanceof Player victim) {
@@ -164,6 +142,7 @@ public class AspectListener implements Listener {
             }
         }
 
+        // --- DEFENSYWA ---
         if (event.getEntity() instanceof Player victim) {
             PlayerData victimData = plugin.getPlayerData(victim);
 
@@ -173,9 +152,14 @@ public class AspectListener implements Listener {
                 case CIEŃ -> {
                     long time = victim.getWorld().getTime();
                     boolean isNight = time >= 13000 && time <= 23000;
-                    if (isNight && random.nextDouble() < 0.15) {
-                        event.setCancelled(true);
-                        victim.sendMessage("§8[Cien] Unik!");
+                    if (isNight) {
+                        if (random.nextDouble() < 0.15) {
+                            event.setCancelled(true);
+                            victim.sendMessage("§8[Cien] Unik!");
+                        }
+                    } else {
+                        // Kara Cienia za dnia: otrzymuje 15% wiecej obrazen (zamiast modyfikatora pancerza)
+                        event.setDamage(event.getDamage() * 1.15);
                     }
                 }
                 default -> {}
