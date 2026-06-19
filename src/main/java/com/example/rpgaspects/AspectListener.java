@@ -9,7 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityRegenEvent;
+import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
@@ -35,7 +35,6 @@ public class AspectListener implements Listener {
     }
 
     public void openAspectGUI(Player player) {
-        // Tworzymy unikalne GUI o rozmiarze 9 slotow
         Inventory gui = Bukkit.createInventory(null, 9, Component.text("§6§lWybierz swoj Aspekt"));
 
         gui.setItem(1, createGuiItem(Material.NETHERITE_AXE, "§c§lBERSERKER", "§7+20% obrazen. Otrzymujesz 10% wiecej ran.", "§cBlokada: Brak tarczy."));
@@ -66,21 +65,18 @@ public class AspectListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getClickedInventory() == null) return;
         
-        // Czyste i bezbledne sprawdzanie czy kliknieto przedmiot w naszym GUI wyboru klas
         ItemStack currentItem = event.getCurrentItem();
         if (currentItem == null || !currentItem.hasItemMeta()) return;
         
         ItemMeta meta = currentItem.getItemMeta();
         if (meta == null || meta.displayName() == null) return;
 
-        // Sprawdzamy czy ekwipunek zawiera przedmioty z naszego menu, aby uniknac uzywania metod getTitle()
         if (currentItem.getType() == Material.NETHERITE_AXE || currentItem.getType() == Material.PHANTOM_MEMBRANE || 
             currentItem.getType() == Material.NETHERITE_CHESTPLATE || currentItem.getType() == Material.BOW || 
             currentItem.getType() == Material.BREWING_STAND || currentItem.getType() == Material.REDSTONE) {
             
             if (!(event.getWhoClicked() instanceof Player player)) return;
             
-            // Blokujemy wyciaganie przedmiotow z menu
             event.setCancelled(true);
             
             PlayerData data = plugin.getPlayerData(player);
@@ -98,7 +94,6 @@ public class AspectListener implements Listener {
             return;
         }
 
-        // Blokada tarcz dla Berserkera
         if (event.getWhoClicked() instanceof Player player) {
             PlayerData data = plugin.getPlayerData(player);
             if (data.getCurrentAspect() == PlayerData.AspectType.BERSERKER) {
@@ -112,13 +107,12 @@ public class AspectListener implements Listener {
 
     @EventHandler
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
-        // --- OFENSYWA ---
         if (event.getDamager() instanceof Player attacker) {
             PlayerData attackerData = plugin.getPlayerData(attacker);
             
             switch (attackerData.getCurrentAspect()) {
                 case BERSERKER -> event.setDamage(event.getDamage() * 1.20);
-                case PALADYN -> event.setDamage(event.getDamage() * 0.85); // Kara Paladyna: -15% zadawanych obrazen wrecz
+                case PALADYN -> event.setDamage(event.getDamage() * 0.85);
                 case CIEN -> {
                     if (attacker.isSneaking()) {
                         event.setDamage(event.getDamage() * 1.25);
@@ -139,17 +133,14 @@ public class AspectListener implements Listener {
             }
         }
 
-        // --- STRZAŁY ŁOWCY (ZAMRAŻANIE ZAMIAST MIKSTURY) ---
         if (event.getDamager() instanceof Arrow arrow && arrow.getShooter() instanceof Player shooter) {
             PlayerData shooterData = plugin.getPlayerData(shooter);
             if (shooterData.getCurrentAspect() == PlayerData.AspectType.LOWCA && event.getEntity() instanceof Player victim) {
-                // Efekt zamrożenia ekranu (jak w sypkim sniegu) - bezpieczna mechanika silnika gry
                 victim.setFreezeTicks(140); 
                 victim.sendMessage("§2[Lowca] Zostales zamrozony strzala!");
             }
         }
 
-        // --- DEFENSYWA ---
         if (event.getEntity() instanceof Player victim) {
             PlayerData victimData = plugin.getPlayerData(victim);
 
@@ -181,7 +172,6 @@ public class AspectListener implements Listener {
                 if (event.getCause() == EntityDamageEvent.DamageCause.ENDER_PEARL) {
                     event.setDamage(event.getDamage() * 2.0);
                 }
-                // Bonus Alchemika: Otrzymuje 30% mniej obrazen od ognia i lawy (zamiast dluzszych mikstur)
                 if (event.getCause() == EntityDamageEvent.DamageCause.FIRE || event.getCause() == EntityDamageEvent.DamageCause.LAVA) {
                     event.setDamage(event.getDamage() * 0.70);
                 }
@@ -189,11 +179,12 @@ public class AspectListener implements Listener {
         }
     }
 
+    // TUTAJ BYŁ BŁĄD: Poprawiona nazwa klasy eventu i typu regeneracji
     @EventHandler
-    public void onPlayerRegen(EntityRegenEvent event) {
+    public void onPlayerRegen(EntityRegainHealthEvent event) {
         if (event.getEntity() instanceof Player player) {
             PlayerData data = plugin.getPlayerData(player);
-            if (data.getCurrentAspect() == PlayerData.AspectType.WAMPIR && event.getRegenReason() == EntityRegenEvent.RegenReason.SATIATED) {
+            if (data.getCurrentAspect() == PlayerData.AspectType.WAMPIR && event.getRegainReason() == EntityRegainHealthEvent.RegainReason.SATIATED) {
                 if (random.nextBoolean()) {
                     event.setCancelled(true);
                 }
