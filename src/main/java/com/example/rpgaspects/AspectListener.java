@@ -41,7 +41,7 @@ public class AspectListener implements Listener {
         gui.setItem(2, createGuiItem(Material.PHANTOM_MEMBRANE, "§8§lCIEŃ", "§715% na unik w nocy. +25% obrazen ze skradania.", "§cKara: Otrzymujesz 15% wiecej ran za dnia."));
         gui.setItem(3, createGuiItem(Material.NETHERITE_CHESTPLATE, "§e§lPALADYN", "§7Otrzymujesz 15% mniej obrazen od wszystkiego.", "§cKara: Zadajesz o 15% mniej obrazen."));
         gui.setItem(4, createGuiItem(Material.BOW, "§2§lŁOWCA", "§7Trafienie strzala zamraza wroga na moment.", "§cKara: Zadajesz 20% mniej obrazen wrecz."));
-        gui.setItem(5, createGuiItem(Material.BREWING_STAND, "§d§lALCHEMIK", "§7Zwiekszona odpornosc na podpalenia.", "§cSlabosc: Perly endu rania 2x mocniej."));
+        gui.setItem(5, createGuiItem(Material.BREWING_STAND, "§d§lALCHEMIK", "§7Zwiekszona odpornosc na podpalenia.", "§cSlabosc: Otrzymujesz 2x wieksze obrazenia magiczne."));
         gui.setItem(6, createGuiItem(Material.REDSTONE, "§4§lWAMPIR", "§7Leczysz sie o 12% zadanych obrazen.", "§cKara: Regeneracja z jedzenia slabsza o 50%."));
 
         player.openInventory(gui);
@@ -169,7 +169,8 @@ public class AspectListener implements Listener {
         if (event.getEntity() instanceof Player player) {
             PlayerData data = plugin.getPlayerData(player);
             if (data.getCurrentAspect() == PlayerData.AspectType.ALCHEMIK) {
-                if (event.getCause() == EntityDamageEvent.DamageCause.ENDER_PEARL) {
+                // POPRAWKA TUTAJ: Zamiast nieistniejacego ENDER_PEARL sprawdzamy stary, dobry MAGIC
+                if (event.getCause() == EntityDamageEvent.DamageCause.MAGIC) {
                     event.setDamage(event.getDamage() * 2.0);
                 }
                 if (event.getCause() == EntityDamageEvent.DamageCause.FIRE || event.getCause() == EntityDamageEvent.DamageCause.LAVA) {
@@ -179,7 +180,6 @@ public class AspectListener implements Listener {
         }
     }
 
-    // TUTAJ BYŁ BŁĄD: Poprawiona nazwa klasy eventu i typu regeneracji
     @EventHandler
     public void onPlayerRegen(EntityRegainHealthEvent event) {
         if (event.getEntity() instanceof Player player) {
