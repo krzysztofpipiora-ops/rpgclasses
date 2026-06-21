@@ -21,8 +21,9 @@ public class AspectCommand implements CommandExecutor {
             return true;
         }
 
-        AspectListener aspectListener = new AspectListener(plugin);
-        aspectListener.openAspectGUI(player);
+        // Bezpieczne otwieranie GUI bez ponownej rejestracji listenera jako obiektu
+        AspectListener listener = new AspectListener(plugin);
+        listener.openAspectGUI(player);
         
         return true;
     }
