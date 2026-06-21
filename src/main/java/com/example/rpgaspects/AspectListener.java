@@ -37,7 +37,8 @@ public class AspectListener implements Listener {
     public void openAspectGUI(Player player) {
         Inventory gui = Bukkit.createInventory(null, 9, Component.text("§6§lWybierz swoj Aspekt"));
 
-        gui.setItem(1, createGuiItem(Material.NETHERITE_AXE, "§c§lBERSERKER", "§7+20% obrazen. Otrzymujesz 10% wiecej ran.", "§cBlokada: Brak tarczy."));
+        // POPRAWKA: Zmieniono lore Berserkera (usunieto informacje o blokadzie tarczy)
+        gui.setItem(1, createGuiItem(Material.NETHERITE_AXE, "§c§lBERSERKER", "§7+20% obrazen. Otrzymujesz 10% wiecej ran.", "§aAspekt czystej sily."));
         gui.setItem(2, createGuiItem(Material.PHANTOM_MEMBRANE, "§8§lCIEŃ", "§715% na unik w nocy. +25% obrazen ze skradania.", "§cKara: Otrzymujesz 15% wiecej ran za dnia."));
         gui.setItem(3, createGuiItem(Material.NETHERITE_CHESTPLATE, "§e§lPALADYN", "§7Otrzymujesz 15% mniej obrazen od wszystkiego.", "§cKara: Zadajesz o 15% mniej obrazen."));
         gui.setItem(4, createGuiItem(Material.BOW, "§2§lŁOWCA", "§7Trafienie strzala zamraza wroga na moment.", "§cKara: Zadajesz 20% mniej obrazen wrecz."));
@@ -93,16 +94,8 @@ public class AspectListener implements Listener {
             player.closeInventory();
             return;
         }
-
-        if (event.getWhoClicked() instanceof Player player) {
-            PlayerData data = plugin.getPlayerData(player);
-            if (data.getCurrentAspect() == PlayerData.AspectType.BERSERKER) {
-                if (event.getCurrentItem() != null && event.getCurrentItem().getType() == Material.SHIELD) {
-                    event.setCancelled(true);
-                    player.sendMessage("§cAspekt Berserkera uniemozliwia korzystanie z tarcz!");
-                }
-            }
-        }
+        
+        // POPRAWKA: Stary kod blokady tarcz dla Berserkera zostal stąd całkowicie usunięty!
     }
 
     @EventHandler
@@ -169,7 +162,6 @@ public class AspectListener implements Listener {
         if (event.getEntity() instanceof Player player) {
             PlayerData data = plugin.getPlayerData(player);
             if (data.getCurrentAspect() == PlayerData.AspectType.ALCHEMIK) {
-                // POPRAWKA TUTAJ: Zamiast nieistniejacego ENDER_PEARL sprawdzamy stary, dobry MAGIC
                 if (event.getCause() == EntityDamageEvent.DamageCause.MAGIC) {
                     event.setDamage(event.getDamage() * 2.0);
                 }
